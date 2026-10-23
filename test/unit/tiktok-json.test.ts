@@ -13,6 +13,6 @@ it('preserves unquoted 64-bit IDs without changing text, fractions or safe numer
 
 it('preserves exact IDs through the native write and verification transport', async () => {
   vi.stubGlobal('fetch',vi.fn(async()=>new Response(response,{headers:{'content-type':'application/json'}})));
-  const result = await tiktokWriteApi({accessToken:'fixture'}).call('ad/get/','GET',{advertiser_id:'123'});
+  const result = await tiktokWriteApi({accessToken:'fixture',allowedAccountIds:['123']}).call('ad/get/','GET',{advertiser_id:'123'});
   expect(result.data.tracking_pixel_id).toBe('7216267239261995009');
 });

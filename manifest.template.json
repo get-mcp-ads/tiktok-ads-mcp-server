@@ -2,8 +2,8 @@
   "manifest_version": "0.3",
   "name": "tiktok-ads-mcp-server",
   "display_name": "TikTok Ads by getmcpads",
-  "version": "2.0.0",
-  "description": "TikTok Ads MCP server: 35 read tools, 29 opt-in preview-first writes.",
+  "version": "2.1.0",
+  "description": "TikTok Ads MCP server: 35 read tools, 30 opt-in preview-first writes.",
   "author": {
     "name": "getmcpads",
     "url": "https://www.getmcpads.com"
@@ -28,6 +28,7 @@
       "env": {
         "TIKTOK_ACCESS_TOKEN": "${user_config.tiktok_access_token}",
         "TIKTOK_APP_ID": "${user_config.tiktok_app_id}",
+        "TIKTOK_ADVERTISER_IDS": "${user_config.tiktok_advertiser_ids}",
         "TIKTOK_APP_SECRET": "${user_config.tiktok_app_secret}",
         "TIKTOK_ADVERTISER_ID": "${user_config.tiktok_advertiser_id}",
         "TIKTOK_ENABLE_WRITES": "${user_config.tiktok_enable_writes}",
@@ -50,6 +51,14 @@
       "required": true,
       "sensitive": false
     },
+    "tiktok_advertiser_ids": {
+      "type": "string",
+      "title": "Tiktok Advertiser Ids",
+      "description": "Comma-separated advertiser IDs this server may access. Recommended; required from 3.0.0.",
+      "required": false,
+      "sensitive": false,
+      "default": ""
+    },
     "tiktok_app_secret": {
       "type": "string",
       "title": "Tiktok App Secret",
@@ -61,7 +70,7 @@
     "tiktok_advertiser_id": {
       "type": "string",
       "title": "Tiktok Advertiser Id",
-      "description": "Default advertiser ID.",
+      "description": "Default advertiser ID. When advertiser IDs are listed above, must be one of them.",
       "required": false,
       "sensitive": false,
       "default": ""
@@ -69,15 +78,15 @@
     "tiktok_enable_writes": {
       "type": "string",
       "title": "Tiktok Enable Writes",
-      "description": "Set to 1 to expose 29 write tools. Default calls preview; confirm:true applies changes.",
+      "description": "true exposes 30 write tools. Defaults to false. Calls preview unless confirm is true.",
       "required": false,
       "sensitive": false,
-      "default": "0"
+      "default": "false"
     },
     "tiktok_environment": {
       "type": "string",
       "title": "Tiktok Environment",
-      "description": "API environment: production (default) or sandbox. Use credentials issued for that environment.",
+      "description": "production (default) or sandbox. Sandbox binds every call to one advertiser ID.",
       "required": false,
       "sensitive": false,
       "default": "production"
@@ -91,7 +100,7 @@
       "linux"
     ],
     "runtimes": {
-      "node": ">=22.12"
+      "node": "^22.23.4 || ^24.22.1 || >=26.12.1"
     }
   }
 }

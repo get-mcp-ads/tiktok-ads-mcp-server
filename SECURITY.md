@@ -18,16 +18,26 @@ you ask us not to.
 
 | Version | Supported |
 | ------- | --------- |
-| 1.x     | ✅        |
+| 2.1.x   | ✅        |
+| < 2.1   | ❌        |
 
 ## What this server does with your token
 
 - The token is read once from `TIKTOK_ACCESS_TOKEN` at startup and kept in
   memory. It is never written to disk. Debug logging prints
   `Access-Token: [redacted]`, never the value.
-- Requests go only to `https://business-api.tiktok.com`, and only under
-  `/open_api/v1.3/`. Any other host or path prefix is refused rather than
+- Requests go only to `https://business-api.tiktok.com`, or to
+  `https://sandbox-ads.tiktok.com` when `TIKTOK_ENVIRONMENT=sandbox`, and only
+  under `/open_api/v1.3/`. Any other host or path prefix is refused rather than
   called. This is covered by tests.
+- When `TIKTOK_ADVERTISER_IDS` is set, only those advertisers are reached. Any
+  other advertiser is refused before a request is sent, and responses that list
+  advertisers are filtered to that list. This is covered by tests. Without it,
+  every advertiser the token reaches is accessible, and the server says so on
+  stderr at startup. It becomes required in 3.0.0.
+- Every request has a 30-second timeout and a 20 MB response limit. The token
+  and app secret are removed from provider error text before it is logged or
+  returned.
 - HTTP redirects are refused once a token has been attached, so a redirect
   cannot forward your credentials to a third party.
 - Mutating endpoints, OAuth endpoints and credential parameters are blocked on

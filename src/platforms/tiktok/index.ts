@@ -19,6 +19,6 @@ export function registerTikTok(server: McpServer, config: TikTokConfig): void {
 
   if (config.enableWrites) {
     registerTikTokWrites(server as never, config as never);
-    logger.info("tiktok", "Registered 29 write tools (every one previews before it applies)");
+    logger.info("tiktok", "Registered 30 write tools (every one previews before it applies)");
   }
 }

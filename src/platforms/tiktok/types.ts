@@ -3,8 +3,10 @@
  * Copyright 2026 GetMCPAds. https://www.getmcpads.com
  * SPDX-License-Identifier: Apache-2.0
  */
+import { TIKTOK_API_BASE_URLS } from "../../core/hosts.js";
+
 // ============================================
-// TIKTOK BUSINESS API TYPES FOR BENLY REPORTS
+// TIKTOK BUSINESS API TYPES FOR REPORTS
 // ============================================
 
 // --- Enums ---
@@ -1036,7 +1038,7 @@ export interface TikTokSavedAudienceListResponse {
 
 // --- Constants ---
 
-export const TIKTOK_API_BASE_URL = "https://business-api.tiktok.com/open_api/v1.3";
+export const TIKTOK_API_BASE_URL = TIKTOK_API_BASE_URLS.production;
 
 export const DEFAULT_PAGE_SIZE = 100;
 export const MAX_PAGE_SIZE = 1000;

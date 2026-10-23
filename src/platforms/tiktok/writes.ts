@@ -1,8 +1,7 @@
 /** Copyright 2026 GetMCPAds. SPDX-License-Identifier: Apache-2.0 */
 import { z } from "zod";
 import type { ToolShape } from "../../tool-quality.js";
-import { toMicroCurrency, toMicros, toMinorUnits, toPlainAmount } from "../../core/money.js";
-const ADS_BASE = "https://googleads.googleapis.com/v25";
+import { toPlainAmount } from "../../core/money.js";
 import { registerTikTokExtendedWrites } from "./extended-writes.js";
 import { tiktokWriteApi } from "./write-api.js";
 type Handler = (args: Record<string, unknown>) => Promise<unknown>;
@@ -39,26 +38,6 @@ const confirmSchema = z
   .boolean()
   .optional()
   .describe("Set to true to actually apply the change. Without it, the tool only previews.");
-
-async function request(url: string, init: RequestInit, contexte: string): Promise<unknown> {
-  const response = await fetch(url, { ...init, redirect: "error" });
-  const body = await response.text();
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(body);
-  } catch {
-    parsed = body;
-  }
-  if (!response.ok) {
-    if (url.startsWith(ADS_BASE + "/")) {
-      const error = (parsed as { error?: { message?: string; details?: { errors?: { errorCode?: unknown; message?: string; location?: unknown }[] }[] } })?.error;
-      const details = error?.details?.flatMap(d => d.errors ?? []).map(e => ({ code: e.errorCode, message: e.message, location: e.location }));
-      throw new Error(`${contexte}: ${JSON.stringify(details?.length ? details : error?.message ?? parsed).slice(0, 3000)}`);
-    }
-    throw new Error(`${contexte} : ${typeof parsed === "string" ? parsed.slice(0, 300) : JSON.stringify(parsed).slice(0, 300)}`);
-  }
-  return parsed;
-}
 
 export function registerTikTokWrites(c: Collector, config: Record<string, string>): void {
   registerTikTokExtendedWrites(c, config);
@@ -236,13 +215,3 @@ export function registerTikTokWrites(c: Collector, config: Record<string, string
     },
   );
 }
-
-// ───────────────────────────── Pinterest ─────────────────────────────
-
-
-/**
- * Ajoute les outils d'écriture d'une plateforme.
- *
- * GA4 et Search Console n'en ont pas : ce sont des sources de mesure, et le
- * produit ne promet d'écritures que sur les plateformes publicitaires.
- */

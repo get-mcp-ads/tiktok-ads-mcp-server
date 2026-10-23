@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "com.getmcpads/tiktok-ads",
   "title": "TikTok Ads",
-  "description": "TikTok Ads MCP server: 35 read tools, 29 opt-in preview-first writes.",
-  "version": "2.0.1",
+  "description": "TikTok Ads MCP server: 35 read tools, 30 opt-in preview-first writes.",
+  "version": "2.1.0",
   "websiteUrl": "https://www.getmcpads.com/tools/tiktok-ads",
   "repository": {
     "url": "https://github.com/get-mcp-ads/tiktok-ads-mcp-server",
@@ -14,7 +14,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@getmcpads/tiktok-ads-mcp-server",
-      "version": "2.0.1",
+      "version": "2.1.0",
       "transport": {
         "type": "stdio"
       },
@@ -32,6 +32,12 @@
           "isSecret": false
         },
         {
+          "name": "TIKTOK_ADVERTISER_IDS",
+          "description": "Comma-separated advertiser IDs this server may access. Recommended; required from 3.0.0.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
           "name": "TIKTOK_APP_SECRET",
           "description": "App secret, for endpoints needing app authentication.",
           "isRequired": false,
@@ -39,19 +45,37 @@
         },
         {
           "name": "TIKTOK_ADVERTISER_ID",
-          "description": "Default advertiser ID.",
+          "description": "Default advertiser ID. When TIKTOK_ADVERTISER_IDS is set, must be one of them.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "TIKTOK_BC_ID",
+          "description": "Default Business Center ID, for Business Center scoped reads.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "TIKTOK_BUSINESS_CENTER_ID",
+          "description": "Alias of TIKTOK_BC_ID, read when TIKTOK_BC_ID is unset.",
           "isRequired": false,
           "isSecret": false
         },
         {
           "name": "TIKTOK_ENABLE_WRITES",
-          "description": "Set to 1 to expose 27 write tools. Default calls preview; confirm:true applies changes.",
+          "description": "true exposes 30 write tools. Defaults to false. Calls preview unless confirm is true.",
           "isRequired": false,
           "isSecret": false
         },
         {
           "name": "TIKTOK_ENVIRONMENT",
-          "description": "API environment: production (default) or sandbox. Use credentials issued for that environment.",
+          "description": "production (default) or sandbox. Sandbox binds every call to one advertiser ID.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "LOG_LEVEL",
+          "description": "debug, info (default), warn or error. Logs go to stderr.",
           "isRequired": false,
           "isSecret": false
         }

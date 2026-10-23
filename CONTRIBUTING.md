@@ -18,7 +18,9 @@ Then run the checks:
 npm run typecheck && npm run lint && npm test && npm run build
 ```
 
-All four must pass. CI runs them on Node 22 and 24.
+All four must pass. CI runs them on Node 22, 24 and 26. Use Node.js 22.23.4,
+24.22.1, 26.12.1 or a newer release: older ones lack the October 2026 security
+fixes.
 
 ## Ground rules
 
