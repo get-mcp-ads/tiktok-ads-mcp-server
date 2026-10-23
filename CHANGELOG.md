@@ -1,7 +1,6 @@
 # Changelog
 
-## 2.1.0 - 2026-10-23
-
+## 2.1.0 - 2026-10-23 - Advertiser scoping and account rename
 - Add `tiktok_rename_advertiser`, which renames a Business Center ad account (advertiser) and changes nothing else. Previews by default.
 - Add `TIKTOK_ADVERTISER_IDS`, an optional advertiser allowlist. When set, reads and writes outside it are refused before any request, account discovery responses are filtered to it, and a read must name an advertiser unless it targets a reference catalog. When unset, the server keeps the 2.0 behaviour and prints one stderr line recommending it.
 - Send reads and writes to `sandbox-ads.tiktok.com` when `TIKTOK_ENVIRONMENT=sandbox`, bound to one sandbox advertiser, with OAuth and Business Center discovery refused there. Version 2.0.1 ignored this variable and sent every request to production.
@@ -13,14 +12,13 @@
 - Publish from a version tag with `release.yml`: npm with provenance, the GitHub release, then the MCP Registry. It replaces `publish-mcp.yml`. Dependabot now proposes weekly npm and monthly GitHub Actions updates.
 - Remove an unused Google Ads request helper from the TikTok write module.
 
-## 2.0.1 - 2026-09-23
+## 2.0.1 - 2026-09-23 - Public repository restored
 
 - Restore public source hosting under the get-mcp-ads GitHub organization.
 - Update repository and support links while preserving npm package and MCP registry names.
 - No changes to platform tools or credential requirements.
 
-## 2.0.0 - 2026-09-20
-
+## 2.0.0 - 2026-09-20 - Gateway sync and security fixes
 - Preserve exact unquoted 64-bit IDs in read, write and verification responses.
 - Fix campaign field selection and default list limits.
 - Update native write validation for budgets, schedules, targeting and readback. Add carousel music, uploaded-video readiness, CTA portfolio and custom identity tools.
@@ -29,8 +27,7 @@
 - No hosted creative UI or MCP Apps integrations.
 
 
-## 1.1.0
-
+## 1.1.0 - 2026-09-13 - Platform capability sync and quality contracts
 - Synchronize applicable platform features with GetMCPAds commit b1471be while retaining local read-only exploration tools and credential configuration.
 - Expose 33 read tools and 27 explicitly enabled write tools.
 - Add MCP annotations, parameter descriptions, structured results, server identity and an offline-generated discovery card.
@@ -38,3 +35,16 @@
 - Refuse credential-bearing redirects and document provider-specific limitations.
 
 No live advertiser mutation is performed by the release tests.
+
+## 1.0.2 - 2026-08-30
+
+- Announce the package version over MCP. Version 1.0.1 still reported 1.0.0 in the handshake.
+
+## 1.0.1 - 2026-08-30
+
+- Add `server.json` and `mcpName` for the official MCP Registry, under `com.getmcpads/tiktok-ads`.
+- Skip registry publication when a version is already listed.
+
+## 1.0.0 - 2026-08-29 - First open-source release
+
+- Publish the server as open source under the Apache-2.0 license.

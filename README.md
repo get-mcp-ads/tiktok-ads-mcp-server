@@ -28,15 +28,35 @@ Run locally with your own platform credentials and a client that supports stdio 
 
 ## What's new
 
+<!-- release-history:start -->
 **[v2.1.0: Advertiser scoping and account rename](https://github.com/get-mcp-ads/tiktok-ads-mcp-server/releases/tag/v2.1.0) · October 23, 2026**
 
-- Add `tiktok_rename_advertiser`, which renames a Business Center ad account and changes nothing else.
-- Add `TIKTOK_ADVERTISER_IDS`, an advertiser allowlist. When set, it is checked before every read and write, and account discovery returns only these advertisers.
-- Send every request to the sandbox host when `TIKTOK_ENVIRONMENT=sandbox`, bound to the single sandbox advertiser.
-- Give every TikTok request a 30-second timeout and a 20 MB response limit, and redact the token and app secret from provider error text.
-- Update `@modelcontextprotocol/sdk` to 1.32.1. Require a Node.js release with the October 2026 security fixes, and warn on stderr when an older one runs the server.
+- Add `tiktok_rename_advertiser`, which renames a Business Center ad account (advertiser) and changes nothing else. Previews by default.
+- Add `TIKTOK_ADVERTISER_IDS`, an optional advertiser allowlist. When set, reads and writes outside it are refused before any request, account discovery responses are filtered to it, and a read must name an advertiser unless it targets a reference catalog. When unset, the server keeps the 2.0 behaviour and prints one stderr line recommending it.
+- Send reads and writes to `sandbox-ads.tiktok.com` when `TIKTOK_ENVIRONMENT=sandbox`, bound to one sandbox advertiser, with OAuth and Business Center discovery refused there. Version 2.0.1 ignored this variable and sent every request to production.
+- Keep reading `1`, `yes` and `on` in `TIKTOK_ENABLE_WRITES` as true, with one stderr deprecation line.
+- Announced for 3.0.0: `TIKTOK_ADVERTISER_IDS` becomes required, and only the exact value `true` enables writes.
+- Give every TikTok request a 30-second timeout and a 20 MB response limit, and redact the token and app secret from provider error text. Keep reading the `code` field of HTTP 200 answers as the outcome.
+- Declare every API host in `src/core/hosts.ts`, with tests that fail on a fetch without redirect handling or timeout and on any other host in `src/`.
+- Update `@modelcontextprotocol/sdk` to 1.32.1 and regenerate `package-lock.json`. Require Node.js 22.23.4, 24.22.1, 26.12.1 or newer, and warn on stderr at startup and in `npm run doctor` on an older release. CI covers Node 22, 24 and 26.
+- Publish from a version tag with `release.yml`: npm with provenance, the GitHub release, then the MCP Registry. It replaces `publish-mcp.yml`. Dependabot now proposes weekly npm and monthly GitHub Actions updates.
+- Remove an unused Google Ads request helper from the TikTok write module.
 
-[Full changelog](CHANGELOG.md) · [Source synchronization details](SOURCE_SYNC.md) · [All releases](https://github.com/get-mcp-ads/tiktok-ads-mcp-server/releases)
+**Earlier releases**
+
+| Version | Date | Highlights |
+| --- | --- | --- |
+| 2.0.1 | September 23, 2026 | Public repository restored |
+| 2.0.0 | September 20, 2026 | Gateway sync and security fixes |
+| 1.1.0 | September 13, 2026 | Platform capability sync and quality contracts |
+| 1.0.2 | August 30, 2026 | Announce the package version over MCP. |
+| 1.0.1 | August 30, 2026 | Add `server.json` and `mcpName` for the official MCP Registry, under `com.getmcpads/tiktok-ads`. |
+| 1.0.0 | August 29, 2026 | First open-source release |
+
+[Full changelog](CHANGELOG.md) · [All releases](https://github.com/get-mcp-ads/tiktok-ads-mcp-server/releases)
+<!-- release-history:end -->
+
+Source synchronization: [SOURCE_SYNC.md](SOURCE_SYNC.md).
 
 ### Upgrade notes
 
