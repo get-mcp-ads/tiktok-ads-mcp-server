@@ -6,7 +6,7 @@
 import { TIKTOK_API_BASE_URLS } from "../../core/hosts.js";
 
 // ============================================
-// TIKTOK BUSINESS API TYPES FOR BENLY REPORTS
+// TIKTOK BUSINESS API TYPES FOR REPORTS
 // ============================================
 
 // --- Enums ---

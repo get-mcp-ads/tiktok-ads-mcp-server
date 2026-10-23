@@ -72,7 +72,7 @@ Configure your MCP client to run `node` with the absolute path to `dist/cli.js` 
 | | |
 |---|---|
 | **35 read tools** | Campaigns, ad groups, ads, creatives, audiences, pixels, events, Spark Ads, catalogs, delivery diagnostics |
-| **30 write tools** | Off by default. Campaign and ad group status, budgets, campaign creation. Each one **previews before it applies** |
+| **30 write tools** | Off by default. Creation and configuration of campaigns, ad groups, ads and Smart+ entities, status, budgets, renames and media uploads. Each one **previews before it applies** |
 | **277 metrics** | Including derived ones computed client-side |
 | **16 dimensions** | With a compatibility matrix that catches invalid combinations before they hit the API |
 | **5 resources** | Live catalogues the model can read: metrics, dimensions, compatibility rules, 12 workflow recipes |
