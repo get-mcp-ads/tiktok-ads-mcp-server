@@ -115,7 +115,7 @@ export const TIKTOK_EXTENDED_WRITES=[
  'tiktok_create_campaign_advanced','tiktok_update_campaign_configuration','tiktok_create_adgroup','tiktok_update_adgroup_configuration','tiktok_create_ads','tiktok_update_ads',
  'tiktok_create_smart_plus_campaign','tiktok_update_smart_plus_campaign','tiktok_create_smart_plus_adgroup','tiktok_update_smart_plus_adgroup','tiktok_create_smart_plus_ad','tiktok_update_smart_plus_ad',
  'tiktok_update_ad_status','tiktok_update_smart_plus_campaign_status','tiktok_update_smart_plus_adgroup_status','tiktok_update_smart_plus_ad_status','tiktok_update_smart_plus_material_status',
- 'tiktok_rename_campaign','tiktok_rename_adgroup','tiktok_rename_ad','tiktok_upload_ad_image','tiktok_upload_ad_video','tiktok_create_custom_identity','tiktok_create_cta_portfolio',
+ 'tiktok_rename_campaign','tiktok_rename_adgroup','tiktok_rename_ad','tiktok_rename_advertiser','tiktok_upload_ad_image','tiktok_upload_ad_video','tiktok_create_custom_identity','tiktok_create_cta_portfolio',
 ];
 export function registerTikTokExtendedWrites(c:Collector,config:Record<string,string>,readOnly=false){
  const api=tiktokWriteApi(config);
@@ -247,6 +247,10 @@ export function registerTikTokExtendedWrites(c:Collector,config:Record<string,st
   const p:Row=level==='ad'?{creatives:[{ad_id:a.entityId,ad_name:a.name}],patch_update:true}:{[`${level}_id`]:a.entityId,[`${level}_name`]:a.name};
   return {path:`${level}/update/`,payload:p,scope:async()=>{const current=await api.entity(a.advertiserId,level,a.entityId);if(level==='ad')p.adgroup_id=String(current.adgroup_id);},verify:()=>api.entity(a.advertiserId,level,a.entityId)};
  });
+ // Only Business Center ad accounts, renamed by a Business Center admin; TikTok refuses the others.
+ register('tiktok_rename_advertiser','Rename the TikTok ad account (advertiser) itself. Works for ad accounts created in a Business Center, by a Business Center admin. Does not change billing, company details or delivery.',{name:z.string().trim().min(1).max(255).describe('Exact new ad account name.')},a=>({
+  path:'advertiser/update/',payload:{advertiser_name:a.name},verify:async()=>{const account=await api.info(a.advertiserId);return {confirmed:account.name===a.name,name:account.name};}
+ }));
  for(const kind of ['image','video'] as const)register(`tiktok_upload_ad_${kind}`,`Import a ${kind} from a public HTTPS media URL or base64 file (up to 5 MiB). A single returned media ID is exposed at media.id, with the native receipt preserved in result. TikTok may process it asynchronously; acceptance is not proof the media is ready.`,{
   fileUrl:z.string().url().startsWith('https://').optional().describe('Public URL of the actual media file, not a landing page. Mutually exclusive with bytesBase64.'),
   bytesBase64:z.string().min(4).max(7_000_000).regex(/^[A-Za-z0-9+/]+={0,2}$/).optional().describe('Base64 media bytes without a data-URL prefix. Maximum decoded 5 MiB. The required file checksum is calculated automatically; bytes never appear in previews.'),

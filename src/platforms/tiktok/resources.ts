@@ -191,7 +191,7 @@ export function registerTikTokResources(server: McpServer, enableWrites = false)
         writesEnabled: enableWrites,
         noMutationPolicy: enableWrites
           ? "Read tools only call read endpoints. Write tools can change campaign and ad group status and budgets, and create disabled campaigns. Every write returns a preview and applies only when the caller repeats the call with confirm: true."
-          : "Tools only call GET/read endpoints and never create, update, delete, upload, or mutate TikTok objects. Write tools exist but are disabled unless TIKTOK_ENABLE_WRITES is set.",
+          : "Tools only call GET/read endpoints and never create, update, delete, upload, or mutate TikTok objects. Write tools exist but are disabled unless TIKTOK_ENABLE_WRITES is true.",
         tools: TIKTOK_TOOL_MANIFEST,
         resources: [
           "tiktok://manifest",

@@ -12,7 +12,7 @@ async function introspect() {
   const transport = new StdioClientTransport({
     command: "node",
     args: ["dist/cli.js"],
-    env: { ...process.env, TIKTOK_ACCESS_TOKEN: "token-for-listing", TIKTOK_APP_ID: "app-for-listing", TIKTOK_ENABLE_WRITES: "1" },
+    env: { ...process.env, TIKTOK_ACCESS_TOKEN: "token-for-listing", TIKTOK_APP_ID: "app-for-listing", TIKTOK_ADVERTISER_IDS: "1000000000000000001", TIKTOK_ENABLE_WRITES: "true" },
   });
   const client = new Client({ name: "readme-check", version: "1" }, { capabilities: {} });
   await client.connect(transport);
@@ -57,7 +57,7 @@ test("README tool counts match reality", async () => {
   const reads = tools.filter((t) => !writes.includes(t));
 
   assert.equal(reads.length, 35, "read tool count changed, update the README");
-  assert.equal(writes.length, 29, "write tool count changed, update the README");
+  assert.equal(writes.length, 30, "write tool count changed, update the README");
   assert.equal(resources.length, 5, "resource count changed, update the README");
 
   assert.match(README, new RegExp(`\\*\\*${reads.length} read tools\\*\\*`));
@@ -68,7 +68,7 @@ test("published prose uses no em dashes", async () => {
   const { readdirSync } = await import("node:fs");
   const files = [
     "README.md", "SECURITY.md", "CONTRIBUTING.md", "CODE_OF_CONDUCT.md",
-    "NOTICE", ".env.example",
+    "NOTICE", ".env.example", "CHANGELOG.md", "RELEASING.md", "SOURCE_SYNC.md",
   ];
   const srcFiles = [];
   const walk = (dir) => {

@@ -12,7 +12,8 @@ const MCP = {
   claudeKeys: ["tiktok-ads-mcp"],
   requiredEnv: ["TIKTOK_ACCESS_TOKEN", "TIKTOK_APP_ID"],
   requiredEnvAlternatives: [],
-  optionalEnv: ["TIKTOK_APP_SECRET", "TIKTOK_ADVERTISER_ID", "TIKTOK_BC_ID", "TIKTOK_BUSINESS_CENTER_ID", "LOG_LEVEL"],
+  // TIKTOK_ADVERTISER_IDS is optional in 2.x and becomes required in 3.0.0.
+  optionalEnv: ["TIKTOK_ADVERTISER_IDS", "TIKTOK_APP_SECRET", "TIKTOK_ADVERTISER_ID", "TIKTOK_BC_ID", "TIKTOK_BUSINESS_CENTER_ID", "TIKTOK_ENABLE_WRITES", "TIKTOK_ENVIRONMENT", "LOG_LEVEL"],
 };
 
 const CLAUDE_CONFIG_PATH = path.join(
@@ -254,9 +255,31 @@ async function checkReadOnlyPosture() {
   };
 }
 
-function buildWarningsAndActions({ envCheck, packageCheck, claudeCheck, readOnlyCheck }) {
+/** The same check the server runs at startup, read from the build. */
+async function checkNodeRuntime() {
+  const version = process.versions.node;
+  try {
+    const { nodeRuntimeWarning } = await import("../dist/runtime-check.js");
+    const warning = nodeRuntimeWarning(version);
+    return { name: "nodeRuntime", ok: !warning, version, ...(warning ? { warning } : {}) };
+  } catch {
+    return { name: "nodeRuntime", ok: false, version, warning: "dist/runtime-check.js is missing. Run npm run build, then npm run doctor again." };
+  }
+}
+
+function buildWarningsAndActions({ envCheck, packageCheck, claudeCheck, readOnlyCheck, runtimeCheck }) {
   const warnings = [];
   const nextActions = [];
+
+  if (!envCheck.optional.find((item) => item.name === "TIKTOK_ADVERTISER_IDS")?.present) {
+    warnings.push("TIKTOK_ADVERTISER_IDS is not set, so every advertiser the token reaches is accessible. It becomes required in 3.0.0.");
+    nextActions.push("Set TIKTOK_ADVERTISER_IDS to the comma-separated advertiser IDs this server may use.");
+  }
+
+  if (!runtimeCheck.ok) {
+    warnings.push(runtimeCheck.warning);
+    nextActions.push("Install Node.js 22.23.4, 24.22.1, 26.12.1 or a newer release, then build again.");
+  }
 
   if (!envCheck.ok) {
     warnings.push("Missing required environment variables in both current process and matching Claude Desktop config.");
@@ -290,16 +313,18 @@ async function main() {
   const envCheck = checkEnvironment(claudeEnvPresence);
   const packageCheck = await checkPackageAndBuild();
   const readOnlyCheck = await checkReadOnlyPosture();
+  const runtimeCheck = await checkNodeRuntime();
   const { warnings, nextActions } = buildWarningsAndActions({
     envCheck,
     packageCheck,
     claudeCheck,
     readOnlyCheck,
+    runtimeCheck,
   });
-  const hardChecksOk = envCheck.ok && packageCheck.ok && claudeCheck.ok;
+  const hardChecksOk = envCheck.ok && packageCheck.ok && claudeCheck.ok && runtimeCheck.ok;
   const result = {
     ok: hardChecksOk,
-    checks: [envCheck, packageCheck, claudeCheck, readOnlyCheck],
+    checks: [runtimeCheck, envCheck, packageCheck, claudeCheck, readOnlyCheck],
     warnings,
     nextActions,
   };

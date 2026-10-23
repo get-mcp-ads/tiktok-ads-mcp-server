@@ -18,15 +18,30 @@ import {
   TikTokInsightRow,
   TikTokAdvertisersResponse,
   TikTokQueryPlan,
-  TIKTOK_API_BASE_URL,
 } from "./types.js";
 import { mergeResults, buildRequestBody } from "./query-planner.js";
 import { enrichWithCalculatedMetrics } from "./calculated-metrics.js";
 import { findMissingMetricsInRow, getNativeMetrics } from "./metric-catalog.js";
 import { NO_REDIRECT, refuseRedirect } from "../../core/redirects.js";
+import { REQUEST_TIMEOUT_MS, readBoundedText, tiktokApiBase, type TikTokEnvironment } from "../../core/hosts.js";
 
-/** Prevent Access-Token forwarding to non-TikTok hosts or API versions. */
-export function assertSafeTikTokApiUrl(rawEndpoint: string): URL {
+type TikTokReadScope = { tiktokEnvironment?: TikTokEnvironment; sandboxAdvertiserId?: string };
+
+/**
+ * Reference catalogs that carry no advertiser data, so a request may omit the
+ * advertiser selector. Every other read must name an allowed advertiser.
+ */
+const REFERENCE_PATHS = new Set([
+  "tool/action_category", "tool/carrier", "tool/device_model", "tool/interest_category", "tool/language",
+  "tool/os_version", "tool/phone_region_code", "tool/region", "tool/targeting/list", "tool/timezone",
+  "search/region", "targeting/search",
+]);
+/** Token-wide discovery. Its response is filtered to the allowlist before anything else sees it. */
+const DISCOVERY_PATH = "oauth2/advertiser/get";
+
+/** Prevent Access-Token forwarding across hosts, environments or API versions. */
+export function assertSafeTikTokApiUrl(rawEndpoint: string, environment: TikTokEnvironment = "production"): URL {
+  const base = tiktokApiBase(environment);
   let url: URL;
   try {
     if (/^https?:\/\//i.test(rawEndpoint)) {
@@ -35,7 +50,7 @@ export function assertSafeTikTokApiUrl(rawEndpoint: string): URL {
       const relative = rawEndpoint
         .replace(/^\/+/, "")
         .replace(/^open_api\/v1\.3\//, "");
-      url = new URL(relative, `${TIKTOK_API_BASE_URL}/`);
+      url = new URL(relative, `${base}/`);
     }
   } catch {
     throw new Error("TikTok endpoint must be a valid relative path or official API URL.");
@@ -43,12 +58,12 @@ export function assertSafeTikTokApiUrl(rawEndpoint: string): URL {
 
   if (
     url.protocol !== "https:" ||
-    url.hostname !== "business-api.tiktok.com" ||
+    url.hostname !== new URL(base).hostname ||
     url.port !== "" ||
     url.username !== "" ||
     url.password !== ""
   ) {
-    throw new Error("TikTok API reads are restricted to https://business-api.tiktok.com.");
+    throw new Error("TikTok API reads are restricted to the configured environment's official host.");
   }
   if (!url.pathname.startsWith("/open_api/v1.3/")) {
     throw new Error("TikTok API reads are restricted to /open_api/v1.3/.");
@@ -174,13 +189,134 @@ export class TikTokClient {
   public readonly appId?: string;
   public readonly appSecret?: string;
   private rateLimiter = new RateLimiter();
+  private readonly environment: TikTokEnvironment;
+  private readonly sandboxAdvertiserId?: string;
 
-  constructor(accessToken: string, defaultAdvertiserId?: string, apiVersion: string = "v1.3", appId?: string, appSecret?: string) {
+  /**
+   * allowedAccountIds is the TIKTOK_ADVERTISER_IDS allowlist. When it is set,
+   * it is checked before every request and an empty list refuses every request.
+   * Undefined keeps the 2.0 behaviour: every advertiser the token reaches.
+   */
+  constructor(accessToken: string, defaultAdvertiserId?: string, apiVersion: string = "v1.3", appId?: string, appSecret?: string, private readonly allowedAccountIds?: readonly string[], scope: TikTokReadScope = {}) {
+    this.environment = scope.tiktokEnvironment === undefined ? "production" : scope.tiktokEnvironment;
+    this.sandboxAdvertiserId = scope.sandboxAdvertiserId;
     this.accessToken = accessToken;
-    this.defaultAdvertiserId = defaultAdvertiserId;
+    this.defaultAdvertiserId = defaultAdvertiserId ?? (this.environment === "sandbox" ? this.sandboxAdvertiserId : undefined);
     this.apiVersion = apiVersion;
     this.appId = appId;
     this.appSecret = appSecret;
+  }
+
+  private isAllowed(id: string): boolean {
+    return this.allowedAccountIds === undefined || this.allowedAccountIds.includes(id);
+  }
+
+  /** Refuses, before any network call, an advertiser outside the allowlist or the sandbox binding. */
+  public assertAdvertiserScope(ids: string[]): void {
+    tiktokApiBase(this.environment);
+    if (this.allowedAccountIds !== undefined && !this.allowedAccountIds.length) {
+      throw new Error("TIKTOK_ADVERTISER_IDS is empty, so no advertiser may be accessed. Nothing was sent.");
+    }
+    if (this.environment === "sandbox" && (typeof this.sandboxAdvertiserId !== "string" || !/^\d+$/.test(this.sandboxAdvertiserId) ||
+      !this.isAllowed(this.sandboxAdvertiserId) || this.defaultAdvertiserId !== this.sandboxAdvertiserId)) {
+      throw new Error("TikTok sandbox requires a selected, bound advertiser ID.");
+    }
+    if (this.environment === "sandbox" && (!ids.length || ids.some(id => id !== this.sandboxAdvertiserId))) {
+      throw new Error("TikTok sandbox reads are restricted to the bound advertiser.");
+    }
+    const foreign = ids.filter(id => !this.isAllowed(id));
+    if (foreign.length) {
+      throw new Error(`Advertiser ${foreign.join(", ")} is not in TIKTOK_ADVERTISER_IDS. Nothing was sent.`);
+    }
+  }
+
+  private scopedUrl(endpoint: string): URL {
+    const url = assertSafeTikTokApiUrl(endpoint, this.environment);
+    const ids = url.searchParams.getAll("advertiser_id");
+    for (const raw of url.searchParams.getAll("advertiser_ids")) {
+      let values: unknown;
+      try { values = JSON.parse(raw); } catch { throw new Error("Invalid TikTok advertiser_ids."); }
+      if (!Array.isArray(values) || !values.length || values.some(id => typeof id !== "string")) throw new Error("Invalid TikTok advertiser_ids.");
+      ids.push(...values);
+    }
+    const path = url.pathname.replace(/^\/open_api\/v1\.3\//, "").replace(/\/+$/, "");
+    if (this.environment === "sandbox") {
+      this.assertAdvertiserScope(ids);
+      // Sandbox credentials cannot be used for OAuth or Business Center discovery,
+      // even if a caller adds an otherwise valid advertiser selector.
+      if (/^\/open_api\/v1\.3\/(?:oauth2|bc)\//.test(url.pathname)) throw new Error("TikTok sandbox discovery is limited to the bound advertiser.");
+    } else if (ids.length) {
+      this.assertAdvertiserScope(ids);
+    } else if (this.allowedAccountIds !== undefined) {
+      this.assertAdvertiserScope([]);
+      if (path !== DISCOVERY_PATH && !REFERENCE_PATHS.has(path)) {
+        throw new Error("Pass advertiserId: every TikTok request must name an advertiser from TIKTOK_ADVERTISER_IDS. Nothing was sent.");
+      }
+    }
+    return url;
+  }
+
+  /** Discovery responses can list advertisers outside the allowlist. They never leave the client. */
+  private dropForeignAdvertisers<T>(data: T): T {
+    if (this.allowedAccountIds === undefined) return data;
+    const payload = data as { data?: { list?: unknown } } | undefined;
+    const list = payload?.data?.list;
+    if (!Array.isArray(list)) return data;
+    const kept = list.filter(row => {
+      const id = row && typeof row === "object" ? (row as Record<string, unknown>).advertiser_id : undefined;
+      return id === undefined || id === null || this.isAllowed(String(id));
+    });
+    if (kept.length === list.length) return data;
+    return { ...payload, data: { ...payload!.data, list: kept } } as T;
+  }
+
+  /** Provider error text can echo a credential. It is redacted before it reaches a log or the model. */
+  private scrub(text: string): string {
+    let out = text;
+    for (const secret of [this.accessToken, this.appSecret]) {
+      if (secret) out = out.split(secret).join("[redacted]");
+    }
+    return out;
+  }
+
+  private async send(url: URL, init: RequestInit): Promise<Record<string, unknown>> {
+    let response: Response;
+    try {
+      response = await fetch(url, { ...init, redirect: NO_REDIRECT, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+      refuseRedirect(response, "TikTok Business API");
+    } catch (error) {
+      if (error instanceof Error && /redirect/.test(error.message)) throw error;
+      throw new Error("TikTok could not be reached or did not answer in time. Retry later.");
+    }
+    logger.debug("tiktok", `Response status: ${response.status}`);
+
+    if (!response.ok) {
+      let errorBody = "";
+      try {
+        errorBody = this.scrub(await readBoundedText(response));
+        logger.error("tiktok", `Error response body: ${errorBody.slice(0, 2000)}`);
+      } catch {
+        logger.error("tiktok", "Could not read error body");
+      }
+      throw new TikTokApiException(
+        `HTTP error ${response.status}: ${response.statusText}. Body: ${errorBody.substring(0, 200)}`,
+        response.status,
+        ""
+      );
+    }
+
+    const data = parseTikTokJson(await readBoundedText(response)) as Record<string, unknown>;
+    logger.debug("tiktok", `Response code: ${data.code}`);
+
+    // TikTok answers HTTP 200 even when the call failed: the code field decides.
+    if (data.code !== 0) {
+      throw new TikTokApiException(
+        this.scrub(String((data.message as string) || "Unknown API error")),
+        data.code as number,
+        (data.request_id as string) || ""
+      );
+    }
+    return this.dropForeignAdvertisers(data);
   }
 
   /**
@@ -191,10 +327,10 @@ export class TikTokClient {
     method: "GET" | "POST" = "GET",
     body?: Record<string, unknown>
   ): Promise<T> {
+    const url = this.scopedUrl(endpoint);
+    if (body && typeof body.advertiser_id === "string") this.assertAdvertiserScope([body.advertiser_id]);
     return this.rateLimiter.execute(async () => {
-      const url = `${TIKTOK_API_BASE_URL}/${endpoint}`;
-
-      logger.debug("tiktok", `${method} ${redactSecrets(url)}`);
+      logger.debug("tiktok", `${method} ${redactSecrets(url.toString())}`);
       if (body) {
         logger.debug("tiktok", `Body: ${JSON.stringify(redactSecrets(body), null, 2)}`);
       }
@@ -203,52 +339,14 @@ export class TikTokClient {
         "Access-Token": this.accessToken,
         "Content-Type": "application/json",
       };
-
-      const options: RequestInit = {
-        method,
-        headers,
-        redirect: "error",
-      };
-
-      if (body && method === "POST") {
-        options.body = JSON.stringify(body);
-      }
-
-      logger.debug("tiktok", `Making request to: ${redactSecrets(url)}`);
       logger.debug("tiktok", "Access-Token: [redacted]");
 
-      const response = await fetch(url, { ...options, redirect: "error" });
-      refuseRedirect(response, "TikTok Business API");
-      logger.debug("tiktok", `Response status: ${response.status}`);
-
-      if (!response.ok) {
-        // Try to get error details from response body
-        let errorBody = "";
-        try {
-          errorBody = await response.text();
-          logger.error("tiktok", `Error response body: ${errorBody}`);
-        } catch {
-          logger.error("tiktok", "Could not read error body");
-        }
-        throw new TikTokApiException(
-          `HTTP error ${response.status}: ${response.statusText}. Body: ${errorBody.substring(0, 200)}`,
-          response.status,
-          ""
-        );
-      }
-
-      const data = parseTikTokJson(await response.text()) as Record<string, unknown>;
-      logger.debug("tiktok", `Response code: ${data.code}`);
-
-      // Check for API-level errors
-      if (data.code !== 0) {
-        throw new TikTokApiException(
-          (data.message as string) || "Unknown API error",
-          data.code as number,
-          (data.request_id as string) || ""
-        );
-      }
-
+      const data = await this.send(url, {
+        method,
+        headers,
+        redirect: NO_REDIRECT,
+        ...(body && method === "POST" ? { body: JSON.stringify(body) } : {}),
+      });
       return data as T;
     });
   }
@@ -262,9 +360,8 @@ export class TikTokClient {
    * Useful for generic/exploratory calls from MCP tools.
    */
   public async fetchUrl(endpoint: string): Promise<unknown> {
+    const url = this.scopedUrl(endpoint);
     return this.rateLimiter.execute(async () => {
-      const url = assertSafeTikTokApiUrl(endpoint);
-
       const safeUrl = String(redactSecrets(url.toString()));
       logger.debug("tiktok", `fetchUrl GET ${safeUrl.slice(0, 120)}`);
 
@@ -273,34 +370,7 @@ export class TikTokClient {
         "Content-Type": "application/json",
       };
 
-      const response = await fetch(url, { method: "GET", headers, redirect: "error" });
-      refuseRedirect(response, "TikTok Business API");
-
-      if (!response.ok) {
-        let errorBody = "";
-        try {
-          errorBody = await response.text();
-        } catch {
-          // ignore
-        }
-        throw new TikTokApiException(
-          `HTTP error ${response.status}: ${response.statusText}. Body: ${errorBody.substring(0, 200)}`,
-          response.status,
-          ""
-        );
-      }
-
-      const data = parseTikTokJson(await response.text()) as Record<string, unknown>;
-
-      if (data.code !== undefined && data.code !== 0) {
-        throw new TikTokApiException(
-          (data.message as string) || "Unknown API error",
-          data.code as number,
-          (data.request_id as string) || ""
-        );
-      }
-
-      return data;
+      return this.send(url, { method: "GET", headers, redirect: NO_REDIRECT });
     });
   }
 
@@ -309,19 +379,23 @@ export class TikTokClient {
   // ============================================
 
   /**
-   * Get list of advertiser accounts accessible to the current token
+   * Get the advertiser accounts accessible to the current token, limited to TIKTOK_ADVERTISER_IDS
    */
   async getAdvertisers(): Promise<TikTokAdvertisersResponse> {
+    if (this.environment === "sandbox") {
+      const response = await this.request<TikTokAdvertisersResponse>(`advertiser/info/?${new URLSearchParams({ advertiser_ids: JSON.stringify([this.sandboxAdvertiserId]) })}`);
+      return { ...response, data: { list: response.data.list.filter(account => account.advertiser_id === this.sandboxAdvertiserId) } };
+    }
     const params: Record<string, string> = {
       access_token: this.accessToken,
     };
     if (this.appId) params.app_id = this.appId;
     if (this.appSecret) params.secret = this.appSecret;
     const qs = new URLSearchParams(params).toString();
-    return this.request<TikTokAdvertisersResponse>(
-      `oauth2/advertiser/get/?${qs}`,
-      "GET"
+    const response = await this.request<TikTokAdvertisersResponse>(
+      `${DISCOVERY_PATH}/?${qs}`, "GET"
     );
+    return { ...response, data: { list: (response.data?.list ?? []).filter(account => this.isAllowed(String(account.advertiser_id))) } };
   }
 
   /**
@@ -343,7 +417,7 @@ export class TikTokClient {
   }> {
     const ids = Array.isArray(advertiserIds) ? advertiserIds : [advertiserIds];
     return this.request(
-      `advertiser/info/?advertiser_ids=${JSON.stringify(ids)}`,
+      `advertiser/info/?${new URLSearchParams({ advertiser_ids: JSON.stringify(ids) })}`,
       "GET"
     );
   }

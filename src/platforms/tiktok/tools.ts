@@ -492,7 +492,7 @@ function normalizeLibraryImage(row: ApiObject): ApiObject {
 }
 
 export function registerTikTokTools(server: McpServer, config: TikTokConfig): void {
-  const client = new TikTokClient(config.accessToken, config.defaultAdvertiserId, "v1.3", config.appId, config.appSecret);
+  const client = new TikTokClient(config.accessToken, config.defaultAdvertiserId, "v1.3", config.appId, config.appSecret, config.allowedAccountIds, config);
 
   // ── P0. tiktok_health_check ────────────────────────────────────────
   server.tool(
@@ -504,7 +504,8 @@ export function registerTikTokTools(server: McpServer, config: TikTokConfig): vo
     async ({ advertiserId }) => {
       try {
         const warnings: string[] = [];
-        const requestedAdvertiserId = advertiserId ?? config.defaultAdvertiserId;
+        const requestedAdvertiserId = advertiserId ?? client.defaultAdvertiserId;
+        if (requestedAdvertiserId) client.assertAdvertiserScope([requestedAdvertiserId]);
 
         let advertisers: unknown;
         let advertiserList: ApiObject[] = [];
@@ -563,6 +564,8 @@ export function registerTikTokTools(server: McpServer, config: TikTokConfig): vo
           accessTokenConfigured: Boolean(config.accessToken),
           defaultAdvertiserIdConfigured: Boolean(config.defaultAdvertiserId),
           defaultAdvertiserId: config.defaultAdvertiserId,
+          allowedAdvertiserIds: config.allowedAccountIds ?? "not set: every advertiser the token reaches is accessible",
+          environment: config.tiktokEnvironment ?? "production",
           appCredentials: config.appId && config.appSecret
             ? "configured"
             : "not needed here: the access token is supplied directly, and app id and secret are only used to obtain one",
@@ -589,7 +592,7 @@ export function registerTikTokTools(server: McpServer, config: TikTokConfig): vo
   // ── 1. tiktok_list_advertisers ─────────────────────────────────────
   server.tool(
     "tiktok_list_advertisers",
-    "List all TikTok advertiser accounts accessible with the current token. Returns advertiser ID, name, and status.",
+    "List the TikTok advertiser accounts accessible with the current token, limited to TIKTOK_ADVERTISER_IDS. Returns advertiser ID, name, and status.",
     {},
     async () => {
       try {

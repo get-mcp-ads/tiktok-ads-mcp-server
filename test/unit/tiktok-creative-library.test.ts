@@ -4,7 +4,7 @@ import { TikTokClient } from "../../src/platforms/tiktok/client";
 
 /** Synthetic TikTok v1.3 creative-library fixtures; all provider calls are mocked. */
 
-const CONFIG = { accessToken: "test-token" } as const;
+const CONFIG = { accessToken: "test-token", allowedAccountIds: ["123", "7000000000000000003"] } as const;
 
 type ToolResult = { content: [{ type: "text"; text: string }]; isError?: boolean };
 
@@ -186,7 +186,7 @@ describe("piège des statuts /ad/get/ (STATUS_ALL systématique)", () => {
       return tiktokResponse({ list: [{ ad_id: "archived", ad_name: "July video", video_id: VIDEO_ROW.video_id, image_ids: ["images/cover"] }] });
     });
     vi.stubGlobal("fetch", fetchMock);
-    const details = await new TikTokClient("test-token").getAdDetails("123", ["archived"]);
+    const details = await new TikTokClient("test-token", undefined, "v1.3", undefined, undefined, ["123"]).getAdDetails("123", ["archived"]);
     expect(details.get("archived")).toEqual({ name: "July video", assets: [VIDEO_ROW.video_id] });
   });
 

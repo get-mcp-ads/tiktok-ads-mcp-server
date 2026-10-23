@@ -10,7 +10,7 @@ Explore campaign performance, inspect native assets and prepare changes from you
 [![CI](https://github.com/get-mcp-ads/tiktok-ads-mcp-server/actions/workflows/ci.yml/badge.svg)](https://github.com/get-mcp-ads/tiktok-ads-mcp-server/actions/workflows/ci.yml)
 [![Smithery](https://smithery.ai/badge/getmcpads/getmcpads-tiktok-ads)](https://smithery.ai/servers/getmcpads/getmcpads-tiktok-ads)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Node](https://img.shields.io/badge/node-%E2%89%A522.12-brightgreen.svg)](package.json)
+[![Node](https://img.shields.io/badge/node-22.23.4%2B%20%7C%2024.22.1%2B%20%7C%2026.12.1%2B-brightgreen.svg)](package.json)
 
 [Watch the film](https://www.getmcpads.com/home/film/get-mcp-ads-brand-film-1080p.mp4) · [What's new](#whats-new) · [Install](#install-this-release) · [Tool reference](#tools) · [Try hosted getmcpads](https://www.getmcpads.com/tools/tiktok-ads?utm_source=github&utm_medium=readme&utm_campaign=tiktok-ads)
 
@@ -22,32 +22,42 @@ Explore campaign performance, inspect native assets and prepare changes from you
 
 The film shows hosted getmcpads with sample data. Its MCP Apps, from creative galleries and alerts to Google Sheets exports and bulk launches, belong to the hosted product. This repository provides the standalone native API tools.
 
-**35 read tools** · **29 write tools**, disabled by default.
+**35 read tools** · **30 write tools**, disabled by default.
 
 Run locally with your own platform credentials and a client that supports stdio MCP, such as Claude Desktop, Claude Code or Cursor. Your requests go directly to the platform. For managed connections, including supported ChatGPT setups, use the hosted option.
 
 ## What's new
 
-**[v2.0.1: Native tools and security update](https://github.com/get-mcp-ads/tiktok-ads-mcp-server/releases/tag/v2.0.1) · September 20, 2026**
+**[v2.1.0: Advertiser scoping and account rename](https://github.com/get-mcp-ads/tiktok-ads-mcp-server/releases/tag/v2.1.0) · October 23, 2026**
 
-- Preserve exact unquoted 64-bit IDs in read, write and verification responses.
-- Fix campaign field selection and default list limits.
-- Update native write validation for budgets, schedules, targeting and readback. Add carousel music, uploaded-video readiness, CTA portfolio and custom identity tools.
-- Require Node.js 22.12 or newer and check Node 22/24 in CI.
-- Update vulnerable dependencies and regenerate the MCP catalog.
+- Add `tiktok_rename_advertiser`, which renames a Business Center ad account and changes nothing else.
+- Add `TIKTOK_ADVERTISER_IDS`, an advertiser allowlist. When set, it is checked before every read and write, and account discovery returns only these advertisers.
+- Send every request to the sandbox host when `TIKTOK_ENVIRONMENT=sandbox`, bound to the single sandbox advertiser.
+- Give every TikTok request a 30-second timeout and a 20 MB response limit, and redact the token and app secret from provider error text.
+- Update `@modelcontextprotocol/sdk` to 1.32.1. Require a Node.js release with the October 2026 security fixes, and warn on stderr when an older one runs the server.
 
 [Full changelog](CHANGELOG.md) · [Source synchronization details](SOURCE_SYNC.md) · [All releases](https://github.com/get-mcp-ads/tiktok-ads-mcp-server/releases)
 
 ### Upgrade notes
 
-Requires **Node.js 22.12 or newer**. CI covers Node 22 and 24. Version 2.0.1 drops Node 18 and 20 support. Read the current tool schemas before reusing saved arguments. Writes remain optional and require explicit confirmation. Hosted creative integrations and MCP Apps UI are outside this release.
+Requires **Node.js 22.23.4, 24.22.1, 26.12.1 or a newer release**. These carry the October 2026 security fixes, and the server prints a warning on stderr when it runs on an older one. CI covers Node 22, 24 and 26.
+
+**No breaking change.** A 2.0 configuration keeps working. What to know:
+
+- `TIKTOK_ADVERTISER_IDS` is optional. Without it, every advertiser the token reaches stays accessible, and the server prints one line on stderr recommending it. Set it to the advertisers this server may use.
+- `TIKTOK_ENABLE_WRITES` still reads `1`, `yes` and `on` as `true`, and prints one deprecation line on stderr. Use `TIKTOK_ENABLE_WRITES=true`.
+- Version 2.0.1 ignored `TIKTOK_ENVIRONMENT=sandbox` and sent every request to production. Version 2.1.0 sends them to `sandbox-ads.tiktok.com`, bound to one advertiser: the single ID in `TIKTOK_ADVERTISER_IDS`, or `TIKTOK_ADVERTISER_ID`. Without either, sandbox calls are refused.
+
+**Announced for 3.0.0:** `TIKTOK_ADVERTISER_IDS` becomes required, and only the exact value `true` enables writes.
+
+Read the current tool schemas before reusing saved arguments. Writes remain optional and require explicit confirmation. Hosted creative integrations and MCP Apps UI are outside this release.
 
 ## Install this release
 
 This is a GitHub source release. npm and MCP Registry versions are published separately. The commands below select this exact version; unpinned `npx` examples later in this document select the version currently available on npm.
 
 ```bash
-git clone --branch v2.0.1 --depth 1 https://github.com/get-mcp-ads/tiktok-ads-mcp-server.git
+git clone --branch v2.1.0 --depth 1 https://github.com/get-mcp-ads/tiktok-ads-mcp-server.git
 cd tiktok-ads-mcp-server
 npm ci
 npm run build
@@ -62,7 +72,7 @@ Configure your MCP client to run `node` with the absolute path to `dist/cli.js` 
 | | |
 |---|---|
 | **35 read tools** | Campaigns, ad groups, ads, creatives, audiences, pixels, events, Spark Ads, catalogs, delivery diagnostics |
-| **29 write tools** | Off by default. Campaign and ad group status, budgets, campaign creation. Each one **previews before it applies** |
+| **30 write tools** | Off by default. Campaign and ad group status, budgets, campaign creation. Each one **previews before it applies** |
 | **277 metrics** | Including derived ones computed client-side |
 | **16 dimensions** | With a compatibility matrix that catches invalid combinations before they hit the API |
 | **5 resources** | Live catalogues the model can read: metrics, dimensions, compatibility rules, 12 workflow recipes |
@@ -109,7 +119,7 @@ your token.
 | Scope group | When you need it |
 |---|---|
 | Reporting and read scopes | **Always.** Campaigns, ad groups, ads, insights |
-| Campaign management scopes | Only if you set `TIKTOK_ENABLE_WRITES=1` |
+| Campaign management scopes | Only if you set `TIKTOK_ENABLE_WRITES=true` |
 | Catalog and Business Center scopes | Optional, for `tiktok_get_shop_catalog_diagnostics` |
 
 ---
@@ -129,7 +139,8 @@ or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
       "args": ["-y", "@getmcpads/tiktok-ads-mcp-server"],
       "env": {
         "TIKTOK_ACCESS_TOKEN": "your-token-here",
-        "TIKTOK_APP_ID": "your-app-id-here"
+        "TIKTOK_APP_ID": "your-app-id-here",
+        "TIKTOK_ADVERTISER_IDS": "your-advertiser-id"
       }
     }
   }
@@ -141,7 +152,7 @@ Restart Claude Desktop. Ask it: *"list my TikTok advertiser accounts"*.
 ### Claude Code
 
 ```bash
-claude mcp add tiktok-ads --env TIKTOK_ACCESS_TOKEN=your-token --env TIKTOK_APP_ID=your-app-id -- npx -y @getmcpads/tiktok-ads-mcp-server
+claude mcp add tiktok-ads --env TIKTOK_ACCESS_TOKEN=your-token --env TIKTOK_APP_ID=your-app-id --env TIKTOK_ADVERTISER_IDS=your-advertiser-id -- npx -y @getmcpads/tiktok-ads-mcp-server
 ```
 
 ### Cursor
@@ -164,10 +175,12 @@ npm start
 |---|---|---|
 | `TIKTOK_ACCESS_TOKEN` | none | **Required.** Your access token |
 | `TIKTOK_APP_ID` | none | **Required.** The App ID the token belongs to |
+| `TIKTOK_ADVERTISER_IDS` | none | **Recommended, required from 3.0.0.** Comma-separated advertiser IDs this server may access. When set, other advertisers are refused before any request, and discovery lists only these. When unset, every advertiser the token reaches is accessible |
 | `TIKTOK_APP_SECRET` | none | Optional, for endpoints needing app authentication |
-| `TIKTOK_ADVERTISER_ID` | none | Optional default, saves passing it on every call |
-| `TIKTOK_BC_ID` | none | Optional Business Center ID |
-| `TIKTOK_ENABLE_WRITES` | *unset* | Set to `1` to register the 29 write tools |
+| `TIKTOK_ADVERTISER_ID` | none | Optional default, saves passing it on every call. When `TIKTOK_ADVERTISER_IDS` is set, it must be one of them |
+| `TIKTOK_BC_ID` | none | Optional Business Center ID. `TIKTOK_BUSINESS_CENTER_ID` is read when it is unset |
+| `TIKTOK_ENABLE_WRITES` | `false` | `true` registers the 30 write tools. `1`, `yes` and `on` still work with a deprecation notice until 3.0.0 |
+| `TIKTOK_ENVIRONMENT` | `production` | `production` or `sandbox`. Sandbox binds every call to one advertiser: the single ID in `TIKTOK_ADVERTISER_IDS`, or `TIKTOK_ADVERTISER_ID` |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
 
 Check your setup at any time:
@@ -180,7 +193,7 @@ npm run doctor
 
 ## Writes, and why they preview first
 
-Write tools are **disabled by default**. Enable them with `TIKTOK_ENABLE_WRITES=1`.
+Write tools are **disabled by default**. Enable them with `TIKTOK_ENABLE_WRITES=true`.
 
 When enabled, every write tool returns a preview and changes nothing:
 
@@ -261,7 +274,7 @@ Every tool is listed below. See [server-card.json](server-card.json) for complet
 </details>
 
 <details>
-<summary><b>29 write tools</b></summary>
+<summary><b>30 write tools</b></summary>
 
 Disabled by default. Calls preview unless explicitly confirmed. Check the configuration and exact schema before use.
 
@@ -289,6 +302,7 @@ Disabled by default. Calls preview unless explicitly confirmed. Check the config
 | `tiktok_rename_campaign` | Rename one classic TikTok campaign. |
 | `tiktok_rename_adgroup` | Rename one classic TikTok adgroup. |
 | `tiktok_rename_ad` | Rename one classic TikTok ad. |
+| `tiktok_rename_advertiser` | Rename the TikTok ad account (advertiser) itself. |
 | `tiktok_upload_ad_image` | Import a image from a public HTTPS media URL or base64 file (up to 5 MiB). |
 | `tiktok_upload_ad_video` | Import a video from a public HTTPS media URL or base64 file (up to 5 MiB). |
 | `tiktok_update_campaign_status` | Pause or reactivate a TikTok campaign. |
@@ -320,8 +334,14 @@ The server holds a credential that can read, and optionally modify, live ad acco
 Concretely:
 
 - **The token is never logged.** Debug output prints `Access-Token: [redacted]`.
-- **Requests go only to `business-api.tiktok.com`**, and only under `/open_api/v1.3/`.
+- **Requests go only to `business-api.tiktok.com`**, or to `sandbox-ads.tiktok.com` when
+  `TIKTOK_ENVIRONMENT=sandbox`, and only under `/open_api/v1.3/`.
   Any other host or path is refused rather than called. *Covered by tests.*
+- **With `TIKTOK_ADVERTISER_IDS` set, only those advertisers are reached.** Any other advertiser
+  is refused before a request is sent, and discovery responses are filtered to the list.
+  *Covered by tests.*
+- **Every request has a 30-second timeout and a 20 MB response limit.** Provider error text
+  is stripped of the token and app secret before it is logged or returned.
 - **Redirects are refused once a token is attached**, so a redirect cannot forward your
   credential elsewhere.
 - **Mutating and OAuth endpoints are blocked on the generic read paths.** *Covered by tests.*

@@ -1,8 +1,8 @@
 {
   "serverInfo": {
     "name": "@getmcpads/tiktok-ads-mcp-server",
-    "title": "TikTok Ads MCP server: 35 read tools, 29 opt-in preview-first writes.",
-    "version": "2.0.1",
+    "title": "TikTok Ads MCP server: 35 read tools, 30 opt-in preview-first writes.",
+    "version": "2.1.0",
     "websiteUrl": "https://www.getmcpads.com/tools/tiktok-ads",
     "icons": [
       {
@@ -76,7 +76,7 @@
     {
       "name": "tiktok_list_advertisers",
       "title": "tiktok list advertisers",
-      "description": "List all TikTok advertiser accounts accessible with the current token. Returns advertiser ID, name, and status.",
+      "description": "List the TikTok advertiser accounts accessible with the current token, limited to TIKTOK_ADVERTISER_IDS. Returns advertiser ID, name, and status.",
       "inputSchema": {
         "type": "object",
         "properties": {},
@@ -8733,6 +8733,82 @@
         "required": [
           "advertiserId",
           "entityId",
+          "name"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": true
+              },
+              {
+                "type": "array",
+                "items": {}
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Original tool result: parsed JSON when the text is JSON, otherwise the text or multiple MCP content blocks. Provider fields depend on the selected query."
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "tiktok_rename_advertiser",
+      "title": "tiktok rename advertiser",
+      "description": "Rename the TikTok ad account (advertiser) itself. Works for ad accounts created in a Business Center, by a Business Center admin. Does not change billing, company details or delivery. Local preview by default. No automatic retry; advertiser ownership is checked before applying.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "advertiserId": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Exact TikTok numeric ID as a string, never a rounded JavaScript number."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "description": "Exact new ad account name."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Apply only when true. Default is a local preview without any TikTok call. Never retry an uncertain POST automatically."
+          }
+        },
+        "required": [
+          "advertiserId",
           "name"
         ],
         "additionalProperties": false,

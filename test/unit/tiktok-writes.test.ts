@@ -2,7 +2,7 @@ import {beforeEach,afterEach,it,expect,vi} from 'vitest';
 import {collect,allTools,writeToolNames} from './catalogue';
 import {tiktokWriteApi} from '../../src/platforms/tiktok/write-api';
 import {TIKTOK_EXTENDED_WRITES} from '../../src/platforms/tiktok/extended-writes';
-const config={accessToken:'secret-fixture',tiktokEnvironment:'sandbox',sandboxAdvertiserId:'123'};
+const config={accessToken:'secret-fixture',tiktokEnvironment:'sandbox',sandboxAdvertiserId:'123',allowedAccountIds:['123']};
 const group={campaign_id:'200',adgroup_name:'Test group',promotion_type:'WEBSITE',optimization_goal:'CLICK',billing_event:'CPC',budget_mode:'BUDGET_MODE_DAY',budget:50,pacing:'PACING_MODE_SMOOTH',location_ids:['6252001'],schedule_type:'SCHEDULE_FROM_NOW',schedule_start_time:'2027-01-05T10:00:00-05:00'};
 const creative={ad_name:'Business ad name',ad_format:'SINGLE_VIDEO',video_id:'video-file',display_name:'Test',landing_page_url:'https://example.com'};
 const cases:[string,any][]=[
@@ -23,6 +23,7 @@ const cases:[string,any][]=[
  ['tiktok_update_smart_plus_adgroup_status',{entityId:'300',status:'DISABLE'}],
  ['tiktok_update_smart_plus_material_status',{smartPlusAdId:'500',materialIds:['600'],status:'DISABLE'}],
  ...['campaign','adgroup','ad'].map((n,i)=>[`tiktok_rename_${n}`,{entityId:['200','300','500'][i],name:'New business name'}] as [string,any]),
+ ['tiktok_rename_advertiser',{name:'New ad account name'}],
  ...['image','video'].map(n=>[`tiktok_upload_ad_${n}`,{bytesBase64:'aGVsbG8=',fileName:`test.${n==='image'?'png':'mp4'}`}] as [string,any]),
  ['tiktok_create_custom_identity',{displayName:'GETMCPADS_TEST_IDENTITY'}],
  ['tiktok_create_cta_portfolio',{portfolioContent:[{asset_content:'Learn More',asset_ids:['700']}]}],
