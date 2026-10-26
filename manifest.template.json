@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "tiktok-ads-mcp-server",
   "display_name": "TikTok Ads by getmcpads",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "TikTok Ads MCP server: 35 read tools, 30 opt-in preview-first writes.",
   "author": {
     "name": "getmcpads",

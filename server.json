@@ -3,7 +3,7 @@
   "name": "com.getmcpads/tiktok-ads",
   "title": "TikTok Ads",
   "description": "TikTok Ads MCP server: 35 read tools, 30 opt-in preview-first writes.",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "websiteUrl": "https://www.getmcpads.com/tools/tiktok-ads",
   "repository": {
     "url": "https://github.com/get-mcp-ads/tiktok-ads-mcp-server",
@@ -14,7 +14,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@getmcpads/tiktok-ads-mcp-server",
-      "version": "2.1.0",
+      "version": "2.1.1",
       "transport": {
         "type": "stdio"
       },

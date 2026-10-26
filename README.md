@@ -29,23 +29,18 @@ Run locally with your own platform credentials and a client that supports stdio 
 ## What's new
 
 <!-- release-history:start -->
-**[v2.1.0: Advertiser scoping and account rename](https://github.com/get-mcp-ads/tiktok-ads-mcp-server/releases/tag/v2.1.0) · October 23, 2026**
+**[v2.1.1: Zod 4 security update](https://github.com/get-mcp-ads/tiktok-ads-mcp-server/releases/tag/v2.1.1) · October 26, 2026**
 
-- Add `tiktok_rename_advertiser`, which renames a Business Center ad account (advertiser) and changes nothing else. Previews by default.
-- Add `TIKTOK_ADVERTISER_IDS`, an optional advertiser allowlist. When set, reads and writes outside it are refused before any request, account discovery responses are filtered to it, and a read must name an advertiser unless it targets a reference catalog. When unset, the server keeps the 2.0 behaviour and prints one stderr line recommending it.
-- Send reads and writes to `sandbox-ads.tiktok.com` when `TIKTOK_ENVIRONMENT=sandbox`, bound to one sandbox advertiser, with OAuth and Business Center discovery refused there. Version 2.0.1 ignored this variable and sent every request to production.
-- Keep reading `1`, `yes` and `on` in `TIKTOK_ENABLE_WRITES` as true, with one stderr deprecation line.
-- Announced for 3.0.0: `TIKTOK_ADVERTISER_IDS` becomes required, and only the exact value `true` enables writes.
-- Give every TikTok request a 30-second timeout and a 20 MB response limit, and redact the token and app secret from provider error text. Keep reading the `code` field of HTTP 200 answers as the outcome.
-- Declare every API host in `src/core/hosts.ts`, with tests that fail on a fetch without redirect handling or timeout and on any other host in `src/`.
-- Update `@modelcontextprotocol/sdk` to 1.32.1 and regenerate `package-lock.json`. Require Node.js 22.23.4, 24.22.1, 26.12.1 or newer, and warn on stderr at startup and in `npm run doctor` on an older release. CI covers Node 22, 24 and 26.
-- Publish from a version tag with `release.yml`: npm with provenance, the GitHub release, then the MCP Registry. It replaces `publish-mcp.yml`. Dependabot now proposes weekly npm and monthly GitHub Actions updates.
-- Remove an unused Google Ads request helper from the TikTok write module.
+- Update `zod` to 4.6.7. Every Zod release before 4.6.6 is covered by the high-severity advisory GHSA-mrhx-c7xc-m3w5: validating an oversized constrained collection can exhaust memory, and no Zod 3 release carries the fix. `npm audit --omit=dev` reports no vulnerability again.
+- Keep the Zod 3 validation behaviour. A parameter default is still validated and completed before use, so an omitted object must still supply its required fields.
+- Keep each parameter's own description when the parameter is optional or has a default. Zod 4 stores a description on the wrapped schema only, so the shared fallback description could otherwise replace it.
+- Tool names, parameters and descriptions published over MCP are unchanged. `server-card.json` is regenerated with Zod 4's JSON Schema output, which spells some constraints differently.
 
 **Earlier releases**
 
 | Version | Date | Highlights |
 | --- | --- | --- |
+| 2.1.0 | October 23, 2026 | Advertiser scoping and account rename |
 | 2.0.1 | September 23, 2026 | Public repository restored |
 | 2.0.0 | September 20, 2026 | Gateway sync and security fixes |
 | 1.1.0 | September 13, 2026 | Platform capability sync and quality contracts |
@@ -77,7 +72,7 @@ Read the current tool schemas before reusing saved arguments. Writes remain opti
 This is a GitHub source release. npm and MCP Registry versions are published separately. The commands below select this exact version; unpinned `npx` examples later in this document select the version currently available on npm.
 
 ```bash
-git clone --branch v2.1.0 --depth 1 https://github.com/get-mcp-ads/tiktok-ads-mcp-server.git
+git clone --branch v2.1.1 --depth 1 https://github.com/get-mcp-ads/tiktok-ads-mcp-server.git
 cd tiktok-ads-mcp-server
 npm ci
 npm run build

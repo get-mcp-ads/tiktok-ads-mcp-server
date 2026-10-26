@@ -7,7 +7,7 @@ import {tiktokWriteApi} from './write-api.js';
 type Row=Record<string,any>;
 type Collector={tool:(name:string,description:string,shape:ToolShape,handler:(args:Row)=>Promise<unknown>)=>void};
 const id=z.string().regex(/^\d+$/).describe('Exact TikTok numeric ID as a string, never a rounded JavaScript number.');
-const json=z.record(z.unknown());
+const json=z.record(z.string(), z.unknown());
 const moneyKeys=new Set(['budget','min_budget','bid_price','conversion_bid_price','deep_cpa_bid','deep_cpabid','keyword_bid']);
 const controlled=new Set(['advertiser_id','operation_status','access_token','Access-Token','__proto__','constructor','prototype']);
 const models=specs.models as Record<string,Record<string,{type:string,array:boolean,required:boolean,description?:string}>>;
