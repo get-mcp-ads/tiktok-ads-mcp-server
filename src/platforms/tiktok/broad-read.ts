@@ -195,9 +195,9 @@ export function registerTikTokBroadReadTools(
       advertiserId: advertiserIdSchema,
       entityType: z.enum(["campaign", "adgroup", "ad"]),
       fields: z.array(identifierSchema).min(1).max(100),
-      filtering: z.record(z.unknown()).optional().describe("Native TikTok filtering object, for example {campaign_ids:[\"...\"]}"),
-      page: z.number().int().min(1).max(10_000).optional().default(1),
-      pageSize: z.number().int().min(1).max(1000).optional().default(100),
+      filtering: z.record(z.string(), z.unknown()).optional().describe("Native TikTok filtering object, for example {campaign_ids:[\"...\"]}"),
+      page: z.number().int().min(1).max(10_000).prefault(1),
+      pageSize: z.number().int().min(1).max(1000).prefault(100),
       orderField: identifierSchema.optional(),
       orderType: z.enum(["ASC", "DESC"]).optional(),
     },
@@ -225,8 +225,8 @@ export function registerTikTokBroadReadTools(
     "Run a native TikTok BASIC or AUDIENCE synchronous report with caller-selected dimensions and metrics. AUDIENCE supports demographics such as age/gender at campaign/adgroup levels; tiktok_get_audience_report provides a guided path. Use when a current API field is not yet in tiktok://metrics; unlike tiktok_get_insights, this tool does not calculate aliases or auto-split incompatible selections.",
     {
       advertiserId: advertiserIdSchema,
-      serviceType: z.enum(["AUCTION", "RESERVATION"]).optional().default("AUCTION"),
-      reportType: z.enum(["BASIC", "AUDIENCE", "PLAYABLE_MATERIAL", "CATALOG", "BC"]).optional().default("BASIC"),
+      serviceType: z.enum(["AUCTION", "RESERVATION"]).prefault("AUCTION"),
+      reportType: z.enum(["BASIC", "AUDIENCE", "PLAYABLE_MATERIAL", "CATALOG", "BC"]).prefault("BASIC"),
       dataLevel: z.enum([
         "AUCTION_ADVERTISER", "AUCTION_CAMPAIGN", "AUCTION_ADGROUP", "AUCTION_AD",
         "RESERVATION_ADVERTISER", "RESERVATION_CAMPAIGN", "RESERVATION_ADGROUP", "RESERVATION_AD",
@@ -235,14 +235,14 @@ export function registerTikTokBroadReadTools(
       metrics: z.array(identifierSchema).min(1).max(100),
       startDate: dateSchema.optional(),
       endDate: dateSchema.optional(),
-      queryLifetime: z.boolean().optional().default(false),
+      queryLifetime: z.boolean().prefault(false),
       filtering: z.array(z.object({
         field_name: identifierSchema,
         filter_type: z.enum(["IN", "NOT_IN", "CONTAIN_ANY_OF", "BETWEEN", "GREATER_THAN", "LOWER_THAN"]),
         filter_value: z.union([z.string().max(2_000), z.array(z.string().max(500)).max(500), z.object({ start: z.string().max(100), end: z.string().max(100) })]),
       })).max(20).optional(),
-      page: z.number().int().min(1).max(10_000).optional().default(1),
-      pageSize: z.number().int().min(1).max(1000).optional().default(1000),
+      page: z.number().int().min(1).max(10_000).prefault(1),
+      pageSize: z.number().int().min(1).max(1000).prefault(1000),
       orderField: identifierSchema.optional(),
       orderType: z.enum(["ASC", "DESC"]).optional(),
     },
@@ -280,7 +280,7 @@ export function registerTikTokBroadReadTools(
       catalog: targetingCatalogSchema,
       advertiserId: advertiserIdSchema.optional(),
       query: z.string().trim().min(1).max(500).optional(),
-      parameters: z.record(z.unknown()).optional().describe("Additional native parameters documented for the selected GET endpoint"),
+      parameters: z.record(z.string(), z.unknown()).optional().describe("Additional native parameters documented for the selected GET endpoint"),
     },
     async ({ catalog, advertiserId, query, parameters }) => {
       try {
@@ -302,7 +302,7 @@ export function registerTikTokBroadReadTools(
     "Advanced GET-only TikTok Business API escape hatch for documented JSON read endpoints not yet modeled by a specialized MCP tool. Relative v1.3 paths and JSON-compatible query parameters are validated; OAuth, mutations, downloads, and lead-record paths are blocked.",
     {
       endpoint: z.string().trim().min(1).max(300).describe("Relative endpoint such as split_test/result/get, file/video/ad/info, store/list, or business/video/list"),
-      parameters: z.record(z.unknown()).optional(),
+      parameters: z.record(z.string(), z.unknown()).optional(),
     },
     async ({ endpoint, parameters }) => {
       try {

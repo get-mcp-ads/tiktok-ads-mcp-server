@@ -193,7 +193,7 @@ export function registerTikTokWrites(c: Collector, config: Record<string, string
       advertiserId: z.string().describe("TikTok advertiser ID."),
       adGroupId: z.string().describe("Ad group ID."),
       budget: z.number().positive().describe("New budget, in the account currency."),
-      budgetMode: z.enum(["BUDGET_MODE_DAY", "BUDGET_MODE_TOTAL"]).optional().default("BUDGET_MODE_DAY").describe("Whether the budget is daily or total."),
+      budgetMode: z.enum(["BUDGET_MODE_DAY", "BUDGET_MODE_TOTAL"]).prefault("BUDGET_MODE_DAY").describe("Whether the budget is daily or total."),
       confirm: confirmSchema,
     },
     async (a) => {

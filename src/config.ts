@@ -24,7 +24,7 @@ const configSchema = z.object({
   defaultBusinessCenterId: z.string().optional(),
   /** Write tools are registered only when this is true. */
   enableWrites: z.boolean().optional(),
-  logLevel: z.enum(["debug", "info", "warn", "error"]).default("info"),
+  logLevel: z.enum(["debug", "info", "warn", "error"]).prefault("info"),
 });
 
 export type TikTokConfig = z.infer<typeof configSchema>;

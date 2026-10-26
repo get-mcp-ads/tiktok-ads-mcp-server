@@ -16,7 +16,7 @@ import type { TikTokConfig } from "../../config.js";
 import { registerTikTokBroadReadTools } from "./broad-read.js";
 
 const advertiserIdSchema = z.string().describe("TikTok advertiser ID");
-const limitSchema = z.number().int().min(1).max(1000).optional().default(100);
+const limitSchema = z.number().int().min(1).max(1000).prefault(100);
 const TIKTOK_API_VERSION = "v1.3";
 
 type AgentResponseRecord = Record<string, unknown>;
@@ -431,9 +431,9 @@ function jaccard(left: string[], right: string[]): number | undefined {
   return union > 0 ? intersection / union : undefined;
 }
 
-const libraryPageSchema = z.number().int().min(1).max(10_000).optional().default(1)
+const libraryPageSchema = z.number().int().min(1).max(10_000).prefault(1)
   .describe("Page number (page_info.total_page in the response gives the bound)");
-const libraryPageSizeSchema = z.number().int().min(1).max(100).optional().default(20)
+const libraryPageSizeSchema = z.number().int().min(1).max(100).prefault(20)
   .describe("Items per page (TikTok caps file library pages at 100)");
 
 /** ISO de l'epoch `x-expires` que TikTok signe dans ses URLs CDN. */
@@ -694,17 +694,17 @@ Age/gender dimensions route automatically to AUDIENCE reports via tiktok_get_aud
       reportType: z.enum(["BASIC", "AUDIENCE"]).optional().describe("Defaults to AUDIENCE for age/gender, BASIC otherwise. Explicit BASIC with demographics is rejected."),
       metrics: z.array(z.string()).min(1).describe("Metric keys from tiktok://metrics (e.g., spend, impressions, clicks)"),
       dimensions: z.array(z.string()).optional().describe("Dimension keys from tiktok://dimensions (e.g., stat_time_day, campaign_id)"),
-      dataLevel: z.enum(["AUCTION_ADVERTISER", "AUCTION_CAMPAIGN", "AUCTION_ADGROUP", "AUCTION_AD"]).optional().default("AUCTION_CAMPAIGN"),
+      dataLevel: z.enum(["AUCTION_ADVERTISER", "AUCTION_CAMPAIGN", "AUCTION_ADGROUP", "AUCTION_AD"]).prefault("AUCTION_CAMPAIGN"),
       startDate: z.string().describe("Start date YYYY-MM-DD"),
       endDate: z.string().describe("End date YYYY-MM-DD"),
-      queryLifetime: z.boolean().optional().default(false).describe("Query lifetime metrics (cannot use time dimensions)"),
+      queryLifetime: z.boolean().prefault(false).describe("Query lifetime metrics (cannot use time dimensions)"),
       campaignIds: z.array(z.string().regex(/^\d+$/)).min(1).max(100).optional().describe("Restrict audience reports to these campaigns."),
       adgroupIds: z.array(z.string().regex(/^\d+$/)).min(1).max(100).optional().describe("Restrict audience reports to these ad groups."),
       page: z.number().int().min(1).max(10000).optional().describe("AUDIENCE report page; follow nextPage."),
       adIds: z.array(z.string().regex(/^\d+$/)).min(1).max(100).optional().describe("Restrict AUCTION_AD reports to these ad IDs, including daily trends."),
       orderField: z.enum(["spend", "impressions", "clicks"]).optional().describe("Order the native report before limiting rows. Include this metric in metrics."),
       orderType: z.enum(["ASC", "DESC"]).optional().describe("Native sort direction; defaults to DESC when orderField is selected."),
-      limit: z.number().int().min(1).max(1000).optional().default(500),
+      limit: z.number().int().min(1).max(1000).prefault(500),
     },
     async ({ advertiserId, metrics, dimensions, dataLevel, startDate, endDate, queryLifetime, adIds, campaignIds, adgroupIds, page, reportType, orderField, orderType, limit }) => {
       try {
@@ -835,7 +835,7 @@ Age/gender dimensions route automatically to AUDIENCE reports via tiktok_get_aud
     {
       advertiserId: advertiserIdSchema,
       limit: limitSchema,
-      page: z.number().int().min(1).max(10000).optional().default(1).describe("Follow page_info.total_page to read the full audience library."),
+      page: z.number().int().min(1).max(10000).prefault(1).describe("Follow page_info.total_page to read the full audience library."),
     },
     async ({ advertiserId, limit, page }) => {
       try {
@@ -857,7 +857,7 @@ Age/gender dimensions route automatically to AUDIENCE reports via tiktok_get_aud
     {
       advertiserId: advertiserIdSchema,
       keywords: z.array(z.string()).min(1).describe("Seed keywords to get suggestions for"),
-      limit: z.number().int().min(1).max(50).optional().default(20),
+      limit: z.number().int().min(1).max(50).prefault(20),
     },
     async ({ advertiserId, keywords, limit }) => {
       try {
@@ -879,9 +879,9 @@ Age/gender dimensions route automatically to AUDIENCE reports via tiktok_get_aud
     {
       metrics: z.array(z.string()).min(1).describe("Metric keys to validate"),
       dimensions: z.array(z.string()).optional().describe("Dimension keys to validate"),
-      dataLevel: z.enum(["AUCTION_ADVERTISER", "AUCTION_CAMPAIGN", "AUCTION_ADGROUP", "AUCTION_AD"]).optional().default("AUCTION_CAMPAIGN"),
+      dataLevel: z.enum(["AUCTION_ADVERTISER", "AUCTION_CAMPAIGN", "AUCTION_ADGROUP", "AUCTION_AD"]).prefault("AUCTION_CAMPAIGN"),
       reportType: z.enum(["BASIC","AUDIENCE"]).optional(),
-      queryLifetime: z.boolean().optional().default(false),
+      queryLifetime: z.boolean().prefault(false),
     },
     async ({ metrics, dimensions, dataLevel, queryLifetime, reportType }) => {
       try {
@@ -926,7 +926,7 @@ Age/gender dimensions route automatically to AUDIENCE reports via tiktok_get_aud
       advertiserId: advertiserIdSchema,
       bcId: z.string().optional().describe("Optional Business Center ID. Defaults to TIKTOK_BC_ID/TIKTOK_BUSINESS_CENTER_ID for BC pixel endpoints."),
       pixelIds: z.array(z.string()).optional().describe("Optional pixel IDs/codes to inspect. If omitted, the tool discovers pixels from BC pixel endpoints first, then advertiser pixel/list."),
-      includeEvents: z.boolean().optional().default(true).describe("Also try to fetch pixel events for discovered or provided pixel IDs."),
+      includeEvents: z.boolean().prefault(true).describe("Also try to fetch pixel events for discovered or provided pixel IDs."),
       limit: limitSchema,
     },
     async ({ advertiserId, bcId, pixelIds, includeEvents, limit }) => {
@@ -1208,7 +1208,7 @@ Age/gender dimensions route automatically to AUDIENCE reports via tiktok_get_aud
       advertiserId: advertiserIdSchema,
       campaignId: z.string().optional().describe("Optional campaign ID filter."),
       adgroupId: z.string().optional().describe("Optional ad group ID filter."),
-      includeAds: z.boolean().optional().default(true).describe("Include ad-level status diagnostics."),
+      includeAds: z.boolean().prefault(true).describe("Include ad-level status diagnostics."),
       limit: limitSchema,
     },
     async ({ advertiserId, campaignId, adgroupId, includeAds, limit }) => {
@@ -1554,7 +1554,7 @@ Age/gender dimensions route automatically to AUDIENCE reports via tiktok_get_aud
     {
       advertiserId: advertiserIdSchema,
       audienceIds: z.array(z.string()).optional().describe("Optional custom/lookalike audience IDs. If omitted, lists available audiences."),
-      includeSavedAudiences: z.boolean().optional().default(true).describe("Also include saved audience targeting details when available."),
+      includeSavedAudiences: z.boolean().prefault(true).describe("Also include saved audience targeting details when available."),
       limit: limitSchema,
     },
     async ({ advertiserId, audienceIds, includeSavedAudiences, limit }) => {
@@ -1650,8 +1650,8 @@ Age/gender dimensions route automatically to AUDIENCE reports via tiktok_get_aud
       advertiserId: advertiserIdSchema,
       startDate: z.string().optional().describe("Start date YYYY-MM-DD. Defaults to 14 days ago."),
       endDate: z.string().optional().describe("End date YYYY-MM-DD. Defaults to today."),
-      dimension: z.enum(["catalog_id", "product_id", "sku_id", "product_set_id", "campaign_id", "adgroup_id", "ad_id"]).optional().default("product_id"),
-      includeDaily: z.boolean().optional().default(false).describe("Add stat_time_day to report dimensions where supported."),
+      dimension: z.enum(["catalog_id", "product_id", "sku_id", "product_set_id", "campaign_id", "adgroup_id", "ad_id"]).prefault("product_id"),
+      includeDaily: z.boolean().prefault(false).describe("Add stat_time_day to report dimensions where supported."),
       catalogId: z.string().optional().describe("Optional catalog ID for product/product-set inventory endpoint attempts."),
       bcId: z.string().optional().describe("Optional TikTok Business Center ID. Defaults to TIKTOK_BC_ID/TIKTOK_BUSINESS_CENTER_ID, then advertiser discovery."),
       productIds: z.array(z.string()).optional().describe("Optional product IDs to filter report rows where supported."),
@@ -1874,7 +1874,7 @@ Age/gender dimensions route automatically to AUDIENCE reports via tiktok_get_aud
       advertiserId: advertiserIdSchema,
       startDate: z.string().optional().describe("Start date YYYY-MM-DD. Defaults to 14 days ago."),
       endDate: z.string().optional().describe("End date YYYY-MM-DD. Defaults to today."),
-      dataLevel: z.enum(["AUCTION_ADVERTISER", "AUCTION_CAMPAIGN", "AUCTION_ADGROUP"]).optional().default("AUCTION_ADGROUP"),
+      dataLevel: z.enum(["AUCTION_ADVERTISER", "AUCTION_CAMPAIGN", "AUCTION_ADGROUP"]).prefault("AUCTION_ADGROUP"),
       seedKeywords: z.array(z.string()).optional().describe("Optional seed keywords for keyword recommendation endpoint diagnostics."),
       limit: limitSchema,
     },
@@ -2025,8 +2025,8 @@ Age/gender dimensions route automatically to AUDIENCE reports via tiktok_get_aud
       advertiserId: advertiserIdSchema,
       startDate: z.string().optional().describe("Start date YYYY-MM-DD. Defaults to 14 days ago."),
       endDate: z.string().optional().describe("End date YYYY-MM-DD. Defaults to today."),
-      minImpressions: z.number().int().min(1).optional().default(1000),
-      declineThresholdPct: z.number().min(1).max(95).optional().default(25),
+      minImpressions: z.number().int().min(1).prefault(1000),
+      declineThresholdPct: z.number().min(1).max(95).prefault(25),
       limit: limitSchema,
     },
     async ({ advertiserId, startDate, endDate, minImpressions, declineThresholdPct, limit }) => {
@@ -2202,8 +2202,8 @@ Age/gender dimensions route automatically to AUDIENCE reports via tiktok_get_aud
       campaignId: z.string().optional().describe("Optional campaign ID filter."),
       adgroupIds: z.array(z.string()).optional().describe("Optional ad group IDs to compare."),
       smartPlus: adgroupReadShape.smartPlus,
-      includeSavedAudiences: z.boolean().optional().default(true),
-      overlapThreshold: z.number().min(0).max(1).optional().default(0.65),
+      includeSavedAudiences: z.boolean().prefault(true),
+      overlapThreshold: z.number().min(0).max(1).prefault(0.65),
       limit: limitSchema,
     },
     async ({ advertiserId, campaignId, adgroupIds, smartPlus, includeSavedAudiences, overlapThreshold, limit }) => {
@@ -2348,8 +2348,8 @@ Age/gender dimensions route automatically to AUDIENCE reports via tiktok_get_aud
       advertiserId: advertiserIdSchema,
       adIds: z.array(z.string()).optional().describe("Optional ad IDs to inspect."),
       adgroupId: z.string().optional().describe("Optional ad group ID filter."),
-      includeOrganicEndpoints: z.boolean().optional().default(true).describe("Try identity/post metadata endpoints when Spark IDs are discovered."),
-      includeExperimentalEndpoints: z.boolean().optional().default(false).describe("Also try undocumented/unstable Organic API endpoint candidates that may return 404. Disabled by default to keep warnings actionable."),
+      includeOrganicEndpoints: z.boolean().prefault(true).describe("Try identity/post metadata endpoints when Spark IDs are discovered."),
+      includeExperimentalEndpoints: z.boolean().prefault(false).describe("Also try undocumented/unstable Organic API endpoint candidates that may return 404. Disabled by default to keep warnings actionable."),
       startDate: z.string().optional().describe("Start date YYYY-MM-DD for page_id reporting. Defaults to 14 days ago."),
       endDate: z.string().optional().describe("End date YYYY-MM-DD for page_id reporting. Defaults to today."),
       limit: limitSchema,

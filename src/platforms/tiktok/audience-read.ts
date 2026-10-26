@@ -9,9 +9,9 @@ export const adgroupReadShape={
  advertiserId:id,
  campaignId:id.optional(),
  adgroupIds:ids.optional(),
- smartPlus:z.boolean().optional().default(false).describe('Use true for upgraded Smart+ ad groups: reads their native targeting_spec and exact placements via smart_plus/adgroup/get. No fallback to classic settings.'),
- page:z.number().int().min(1).max(10000).optional().default(1),
- limit:z.number().int().min(1).max(1000).optional().default(100),
+ smartPlus:z.boolean().prefault(false).describe('Use true for upgraded Smart+ ad groups: reads their native targeting_spec and exact placements via smart_plus/adgroup/get. No fallback to classic settings.'),
+ page:z.number().int().min(1).max(10000).prefault(1),
+ limit:z.number().int().min(1).max(1000).prefault(100),
 };
 function adgroupSchema(){return z.object(adgroupReadShape).strict();}
 type Row=Record<string,any>;
@@ -54,13 +54,13 @@ const levelId:Record<string,string>={AUCTION_ADVERTISER:'advertiser_id',AUCTION_
 const date=z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(v=>{const d=new Date(v+'T00:00:00Z');return Number.isFinite(+d)&&d.toISOString().slice(0,10)===v;},'Use a real date YYYY-MM-DD.');
 export const audienceReportShape={
  advertiserId:id,
- dataLevel:z.enum(levels).optional().default('AUCTION_CAMPAIGN'),
+ dataLevel:z.enum(levels).prefault('AUCTION_CAMPAIGN'),
  dimensions:z.array(z.string()).min(1).max(4).describe('age and/or gender, optionally with the ID matching dataLevel. Multiple demographics return separate reports, never a fabricated age × gender cross-tab.'),
  metrics:z.array(z.string().regex(/^[A-Za-z][A-Za-z0-9_]*$/)).min(1).max(100).describe('Native AUDIENCE metric keys, e.g. spend, impressions, clicks, ctr, cpc, conversion. Provider rejects unsupported metric combinations; BASIC metric availability does not imply AUDIENCE support.'),
  startDate:date,endDate:date,
  campaignIds:ids.optional(),adgroupIds:ids.optional(),adIds:ids.optional(),
- page:z.number().int().min(1).max(10000).optional().default(1),
- limit:z.number().int().min(1).max(1000).optional().default(500),
+ page:z.number().int().min(1).max(10000).prefault(1),
+ limit:z.number().int().min(1).max(1000).prefault(500),
  orderField:z.enum(['spend','impressions','clicks']).optional(),orderType:z.enum(['ASC','DESC']).optional(),
 };
 export function planAudienceReport(raw:unknown){
